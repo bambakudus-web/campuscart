@@ -43,6 +43,15 @@ export default function MyListings() {
     }
   }
 
+  async function handleRelist(id) {
+    try {
+      const res = await api.updateListing(id, { status: 'available' });
+      setListings((prev) => prev.map((l) => (l.id === id ? res.data : l)));
+    } catch (err) {
+      alert(`Could not relist: ${err.message}`);
+    }
+  }
+
   return (
     <section className="browse-listings container">
       <div className="browse-header">
@@ -64,6 +73,8 @@ export default function MyListings() {
             showActions
             onDelete={handleDelete}
             onMarkSold={handleMarkSold}
+            onRelist={handleRelist}
+            sellerLabel="You"
           />
         ))}
       </div>

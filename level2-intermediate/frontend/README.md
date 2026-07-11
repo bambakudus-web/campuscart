@@ -30,6 +30,14 @@ src/
 └── main.jsx                  # entry point, wraps App in BrowserRouter
 ```
 
+## Extra: Product Detail Page & Contact Seller (beyond the task checklist)
+
+- Listing cards are now clickable, linking to `/listings/:id`
+- `pages/ListingDetail.jsx` shows the full image, description, condition, and seller
+- A "Contact Seller on WhatsApp" button opens a pre-filled WhatsApp chat using
+  the seller's phone number — this is an interim contact mechanism; Level 3
+  replaces it with real-time in-app chat via Socket.io
+
 ## Setup
 
 ```bash

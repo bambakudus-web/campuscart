@@ -29,7 +29,8 @@ async function seed() {
         price: 45.0,
         category: 'books',
         item_condition: 'used',
-        seller_id: ama.id
+        seller_id: ama.id,
+        image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80'
       }
     });
 
@@ -40,7 +41,8 @@ async function seed() {
         price: 60.0,
         category: 'electronics',
         item_condition: 'like_new',
-        seller_id: kwame.id
+        seller_id: kwame.id,
+        image_url: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&q=80'
       }
     });
 

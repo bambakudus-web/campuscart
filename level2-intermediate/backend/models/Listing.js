@@ -39,6 +39,10 @@ const Listing = sequelize.define('Listing', {
     type: DataTypes.ENUM('available', 'sold'),
     allowNull: false,
     defaultValue: 'available'
+  },
+  image_url: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'listings',

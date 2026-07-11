@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const { sequelize } = require('./models');
@@ -11,6 +12,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded listing images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
@@ -32,6 +36,11 @@ app.use((req, res) => {
 // Centralized error handler
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
+
+  if (err.name === 'MulterError' || err.message?.includes('Only JPEG')) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error'

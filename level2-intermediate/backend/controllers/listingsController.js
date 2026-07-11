@@ -1,4 +1,6 @@
 const { Listing, User } = require('../models');
+const path = require('path');
+const fs = require('fs');
 
 const sellerAttributes = ['id', 'name', 'phone', 'email'];
 
@@ -42,6 +44,7 @@ exports.getListingById = async (req, res, next) => {
 exports.createListing = async (req, res, next) => {
   try {
     const { title, description, price, category, item_condition } = req.body;
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const listing = await Listing.create({
       title,
@@ -49,6 +52,7 @@ exports.createListing = async (req, res, next) => {
       price,
       category,
       item_condition,
+      image_url,
       seller_id: req.user.id
     });
 
@@ -85,6 +89,15 @@ exports.updateListing = async (req, res, next) => {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
     });
 
+    if (req.file) {
+      // Remove the old image file from disk so uploads don't pile up
+      if (listing.image_url) {
+        const oldPath = path.join(__dirname, '..', listing.image_url);
+        fs.unlink(oldPath, () => {}); // best-effort, ignore errors
+      }
+      updates.image_url = `/uploads/${req.file.filename}`;
+    }
+
     await listing.update(updates);
 
     const withSeller = await Listing.findByPk(listing.id, {
@@ -115,6 +128,12 @@ exports.deleteListing = async (req, res, next) => {
     }
 
     await listing.destroy();
+
+    if (listing.image_url) {
+      const imagePath = path.join(__dirname, '..', listing.image_url);
+      fs.unlink(imagePath, () => {}); // best-effort cleanup
+    }
+
     res.status(200).json({ success: true, message: 'Listing deleted successfully' });
   } catch (err) {
     next(err);
@@ -126,6 +145,7 @@ exports.getMyListings = async (req, res, next) => {
   try {
     const listings = await Listing.findAll({
       where: { seller_id: req.user.id },
+      include: [{ model: User, as: 'seller', attributes: sellerAttributes }],
       order: [['createdAt', 'DESC']]
     });
     res.status(200).json({ success: true, count: listings.length, data: listings });

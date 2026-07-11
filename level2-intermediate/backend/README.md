@@ -34,6 +34,26 @@ Documented here as the tradeoff made for this stage of the project.
 - ✅ `sequelize.sync({ alter: true })` keeps the schema in sync with the models
   during development
 
+## Extra: Image Uploads (beyond the task checklist)
+
+Not required by the internship task list, but added to make the marketplace
+feel like a real product rather than a bare CRUD demo:
+
+- `POST /api/listings` and `PUT /api/listings/:id` now accept `multipart/form-data`
+  with an optional `image` field (JPEG/PNG/WEBP/GIF, max 5MB)
+- Images are stored on disk under `uploads/` and served statically at
+  `/uploads/<filename>`
+- `middleware/upload.js` (Multer) handles validation and storage
+- Old images are cleaned up automatically when a listing's image is replaced
+  or the listing is deleted
+
+**Note for deployment:** storing files on local disk only works while the
+server has a persistent filesystem. Platforms like Railway wipe the
+filesystem on redeploy — if CampusCart is deployed there in Level 3, this
+will need to switch to cloud storage (e.g. Cloudinary) or store images as
+base64 in the database instead, the same tradeoff encountered with Citadel's
+selfie storage.
+
 ## Setup
 
 ```bash

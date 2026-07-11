@@ -92,3 +92,70 @@ exports.getProfile = async (req, res, next) => {
     next(err);
   }
 };
+
+// PUT /api/auth/me — update the logged-in user's name, email, or phone
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { name, email, phone } = req.body;
+
+    // If changing email, make sure it's not already taken by someone else
+    if (email && email !== user.email) {
+      const existing = await User.findOne({ where: { email } });
+      if (existing) {
+        return res.status(409).json({ success: false, message: 'That email is already in use' });
+      }
+    }
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
+    if (phone !== undefined) updates.phone = phone;
+
+    await user.update(updates);
+
+    // Re-issue the token since the email inside it may have changed
+    const token = signToken(user);
+    res.status(200).json({ success: true, token, user: toPublicUser(user) });
+  } catch (err) {
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ success: false, errors: err.errors.map((e) => e.message) });
+    }
+    next(err);
+  }
+};
+
+// PUT /api/auth/me/password — change the logged-in user's password
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'currentPassword and newPassword are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    await user.update({ password_hash });
+
+    res.status(200).json({ success: true, message: 'Password changed successfully' });
+  } catch (err) {
+    next(err);
+  }
+};

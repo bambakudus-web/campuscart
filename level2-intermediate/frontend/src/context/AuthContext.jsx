@@ -42,8 +42,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Called after a successful profile update so the rest of the app
+  // (navbar greeting, etc.) reflects the change immediately.
+  async function updateProfile(payload) {
+    const res = await api.updateProfile(payload);
+    localStorage.setItem('campuscart_token', res.token); // token may have a new email claim
+    setUser(res.user);
+    return res.user;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,8 +16,11 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const query = cat ? `?category=${cat}` : '';
-      const res = await api.getListings(query);
+      // Public browse only shows items still available to buy — sold items
+      // are hidden here but remain visible to the seller in "My Listings".
+      const params = new URLSearchParams({ status: 'available' });
+      if (cat) params.set('category', cat);
+      const res = await api.getListings(`?${params.toString()}`);
       setListings(res.data);
     } catch (err) {
       setError(`Could not load listings. Is the API running? (${err.message})`);

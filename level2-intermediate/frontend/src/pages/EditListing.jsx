@@ -1,21 +1,40 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { api, ASSET_BASE } from '../api/client';
 
-export default function PostListing() {
+function resolveImageUrl(imageUrl) {
+  if (!imageUrl) return null;
+  return imageUrl.startsWith('http') ? imageUrl : `${ASSET_BASE}${imageUrl}`;
+}
+
+export default function EditListing() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    price: '',
-    category: 'books',
-    item_condition: 'used'
-  });
+
+  const [form, setForm] = useState(null); // null until loaded
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api.getListingById(id)
+      .then((res) => {
+        const listing = res.data;
+        setForm({
+          title: listing.title,
+          description: listing.description || '',
+          price: listing.price,
+          category: listing.category,
+          item_condition: listing.item_condition
+        });
+        setImagePreview(resolveImageUrl(listing.image_url));
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -34,9 +53,9 @@ export default function PostListing() {
     setSuccess('');
     setSubmitting(true);
     try {
-      await api.createListing({ ...form, price: parseFloat(form.price) }, imageFile);
-      setSuccess('Listing posted successfully!');
-      setTimeout(() => navigate('/my-listings'), 900);
+      await api.updateListing(id, { ...form, price: parseFloat(form.price) }, imageFile);
+      setSuccess('Listing updated successfully!');
+      setTimeout(() => navigate(`/listings/${id}`), 900);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,18 +63,22 @@ export default function PostListing() {
     }
   }
 
+  if (loading) return <p className="loading container">Loading listing...</p>;
+  if (error && !form) return <p className="empty-state container">{error}</p>;
+  if (!form) return null;
+
   return (
     <section className="post-listing container">
-      <h2>Post a Listing</h2>
+      <h2>Edit Listing</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-row">
           <label htmlFor="title">Title</label>
-          <input id="title" name="title" value={form.title} onChange={handleChange} placeholder="e.g. Engineering Mathematics Textbook" required />
+          <input id="title" name="title" value={form.title} onChange={handleChange} required />
         </div>
 
         <div className="form-row">
           <label htmlFor="description">Description</label>
-          <textarea id="description" name="description" value={form.description} onChange={handleChange} placeholder="Condition details, edition, etc." />
+          <textarea id="description" name="description" value={form.description} onChange={handleChange} />
         </div>
 
         <div className="form-row form-row-split">
@@ -86,14 +109,14 @@ export default function PostListing() {
         </div>
 
         <div className="form-row">
-          <label htmlFor="image">Photo (optional, max 5MB)</label>
+          <label htmlFor="image">Photo (leave blank to keep current photo)</label>
           <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageChange} />
           {imagePreview && (
             <img src={imagePreview} alt="Preview" className="image-preview" />
           )}
         </div>
 
-        <button type="submit" disabled={submitting}>{submitting ? 'Posting...' : 'Post Listing'}</button>
+        <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</button>
         {success && <p className="form-message success">{success}</p>}
         {error && <p className="form-message error">{error}</p>}
       </form>
