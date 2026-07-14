@@ -1,0 +1,147 @@
+# CampusCart Backend — Level 2
+
+This backend satisfies **two** of the three Level 2 tasks at once, since in a real
+project authentication and the database layer are built together rather than as
+separate services. The sections below map each part of the code to the task
+objectives it demonstrates.
+
+## Task 2: Authentication and Authorization
+
+- ✅ `bcryptjs` hashes passwords before they're ever saved (`controllers/authController.js`)
+- ✅ JWTs issued on register/login, signed with `JWT_SECRET`, expiring after `JWT_EXPIRES_IN`
+- ✅ `middleware/auth.js` (`requireAuth`) verifies the token on every protected route
+- ✅ `requireRole` middleware supports role-based restriction (e.g. admin-only routes)
+- ✅ Listing create/update/delete routes are protected — only the logged-in seller
+  who owns a listing (or an admin) can edit/delete it, enforced server-side in
+  `controllers/listingsController.js`, not just hidden in the UI
+
+**Note on token storage:** this project stores the JWT in the browser's
+`localStorage` (see `frontend/src/context/AuthContext.jsx`) for simplicity in a
+local dev environment. The more production-secure approach is an HTTP-only
+cookie, which prevents the token from being readable by JavaScript (mitigating
+XSS token theft) — that would require the API and frontend to share a domain
+or be configured with `credentials: 'include'` and matching CORS settings.
+Documented here as the tradeoff made for this stage of the project.
+
+## Task 3: Database Integration
+
+- ✅ Sequelize ORM replaces the raw `mysql2` queries from Level 1
+- ✅ `models/User.js` and `models/Listing.js` define schemas with field-level validation
+- ✅ `models/index.js` defines the relationship: **one User has many Listings**,
+  **one Listing belongs to one User** (`seller_id` foreign key, cascading delete)
+- ✅ Validation is enforced at the model layer (e.g. price must be > 0, email must
+  be valid, title length constraints) — invalid data never reaches the database
+- ✅ `sequelize.sync({ alter: true })` keeps the schema in sync with the models
+  during development
+
+## Extra: Image Uploads (beyond the task checklist)
+
+Not required by the internship task list, but added to make the marketplace
+feel like a real product rather than a bare CRUD demo:
+
+- `POST /api/listings` and `PUT /api/listings/:id` now accept `multipart/form-data`
+  with an optional `image` field (JPEG/PNG/WEBP/GIF, max 5MB)
+- Images are stored on disk under `uploads/` and served statically at
+  `/uploads/<filename>`
+- `middleware/upload.js` (Multer) handles validation and storage
+- Old images are cleaned up automatically when a listing's image is replaced
+  or the listing is deleted
+
+**Note for deployment:** storing files on local disk only works while the
+server has a persistent filesystem. Platforms like Railway wipe the
+filesystem on redeploy — if CampusCart is deployed there in Level 3, this
+will need to switch to cloud storage (e.g. Cloudinary) or store images as
+base64 in the database instead, the same tradeoff encountered with Citadel's
+selfie storage.
+
+## Extra: Image Uploads via Cloudinary (beyond the task checklist)
+
+Listing photos are uploaded directly to [Cloudinary](https://cloudinary.com)
+instead of the server's local disk. This matters for deployment specifically:
+platforms like Railway wipe the filesystem on every redeploy, so anything
+saved locally would silently disappear. Cloudinary keeps uploaded photos
+persistent regardless of how many times the backend restarts.
+
+**Setup:**
+1. Create a free account at [cloudinary.com](https://cloudinary.com)
+2. From your Cloudinary dashboard, copy your **Cloud Name**, **API Key**, and **API Secret**
+3. Add them to `backend/.env`:
+   ```
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+Images are stored in a `campuscart` folder in your Cloudinary account, capped
+at 1200×1200px on upload to keep file sizes reasonable. When a listing's
+photo is replaced or the listing is deleted, the old Cloudinary image is
+cleaned up automatically via `image_public_id` stored alongside each listing.
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+# edit .env: DB credentials + a real JWT_SECRET (any long random string)
+
+npm run dev        # starts the API on http://localhost:5000
+npm run seed        # (optional, separate terminal) populate sample users + listings
+```
+
+The database `campuscart_db_v2` is separate from Level 1's `campuscart_db` so the
+two projects don't collide. Create it first:
+
+```sql
+CREATE DATABASE campuscart_db_v2;
+GRANT ALL PRIVILEGES ON campuscart_db_v2.* TO 'campuscart_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+(Reuses the `campuscart_user` created in Level 1 — no need to make a new one.)
+
+## Endpoints
+
+| Method | Endpoint | Auth required | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | No | Create an account, returns a JWT |
+| POST | `/api/auth/login` | No | Log in, returns a JWT |
+| GET | `/api/auth/me` | Yes | Get the logged-in user's profile |
+| GET | `/api/listings` | No | Browse all listings (`?category=`, `?status=`) |
+| GET | `/api/listings/mine` | Yes | Get the logged-in user's own listings |
+| GET | `/api/listings/:id` | No | Get a single listing |
+| POST | `/api/listings` | Yes | Create a listing (owned by the logged-in user) |
+| PUT | `/api/listings/:id` | Yes (owner/admin) | Update a listing |
+| DELETE | `/api/listings/:id` | Yes (owner/admin) | Delete a listing |
+
+## Example: Register + Create a Listing
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Kofi Boateng",
+  "email": "kofi@kstu.edu.gh",
+  "password": "securepass123",
+  "phone": "0244123456"
+}
+```
+
+Response includes a `token` — use it as a Bearer token for protected routes:
+
+```http
+POST /api/listings
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Scientific Calculator",
+  "description": "Casio fx-991ES",
+  "price": 35,
+  "category": "electronics",
+  "item_condition": "used"
+}
+```
+
+Note there's no `seller_id` in the request body — it's taken from the verified
+JWT, so no one can post a listing pretending to be someone else.
