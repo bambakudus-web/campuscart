@@ -63,6 +63,10 @@ h2 {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  /* Overrides the shared .container's 980px cap so the logo and nav icons
+     span the full header width instead of both sitting centered together. */
+  max-width: none;
+  padding: 0 32px;
 }
 
 .brand {
@@ -394,17 +398,34 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
   margin-bottom: 40px;
 }
 
-.hero-slide {
+.hero-slide-stack {
   position: relative;
   height: calc(100vh - 78px); /* fills the screen below the fixed-height navbar */
   min-height: 480px;
   max-height: 780px;
   overflow: hidden;
+}
+
+/* Every slide is stacked in the same spot; only the active one is opaque.
+   This avoids the blank flash you'd get from swapping a single div's
+   background-image (the browser had to fetch/decode the new image with
+   nothing behind it in the meantime). */
+.hero-slide {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+.hero-slide-active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .hero-overlay {
@@ -504,7 +525,7 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
 }
 
 @media (max-width: 640px) {
-  .hero-slide { height: 70vh; min-height: 420px; }
+  .hero-slide-stack { height: 70vh; min-height: 420px; }
   .hero-content { padding: 0 24px; max-width: 100%; }
   .hero-title { font-size: 1.9rem; }
   .hero-subtitle { font-size: 1.05rem; }

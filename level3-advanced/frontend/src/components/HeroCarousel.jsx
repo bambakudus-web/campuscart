@@ -39,22 +39,39 @@ export default function HeroCarousel() {
     setIndex((i) => (i - 1 + SLIDES.length) % SLIDES.length);
   }, []);
 
+  // Preload every slide image as soon as the carousel mounts, so advancing
+  // to the next slide never has to wait on a network fetch/decode. That
+  // wait was showing up as a blank flash between slides.
+  useEffect(() => {
+    SLIDES.forEach((s) => {
+      const img = new Image();
+      img.src = s.image;
+    });
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(next, AUTO_ADVANCE_MS);
     return () => clearInterval(timer);
   }, [next]);
 
-  const slide = SLIDES[index];
-
   return (
     <div className="hero-carousel">
-      <div className="hero-slide" style={{ backgroundImage: `url(${slide.image})` }}>
-        <div className="hero-overlay" />
-        <div className="hero-content">
-          <h2 className="hero-title">{slide.title}</h2>
-          <p className="hero-subtitle">{slide.subtitle}</p>
-          <Link to={slide.ctaTo} className="hero-cta">{slide.ctaLabel} →</Link>
-        </div>
+      <div className="hero-slide-stack">
+        {SLIDES.map((slide, i) => (
+          <div
+            key={slide.image}
+            className={`hero-slide ${i === index ? 'hero-slide-active' : ''}`}
+            style={{ backgroundImage: `url(${slide.image})` }}
+            aria-hidden={i !== index}
+          >
+            <div className="hero-overlay" />
+            <div className="hero-content">
+              <h2 className="hero-title">{slide.title}</h2>
+              <p className="hero-subtitle">{slide.subtitle}</p>
+              <Link to={slide.ctaTo} className="hero-cta">{slide.ctaLabel} →</Link>
+            </div>
+          </div>
+        ))}
 
         <button className="hero-arrow hero-arrow-left" onClick={prev} aria-label="Previous slide">
           <ChevronLeft size={22} />
