@@ -83,7 +83,14 @@ async function startServer() {
   const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ req }) => ({ user: getUserFromAuthHeader(req) })
+    context: ({ req }) => ({ user: getUserFromAuthHeader(req) }),
+    // AUDIT FIX: Apollo warns that persisted queries default to an
+    // unbounded in-memory cache, which an attacker could exploit to exhaust
+    // server memory by sending many unique queries. Capping it at 1000
+    // entries keeps the performance benefit without the DoS risk.
+    persistedQueries: {
+      cache: 'bounded'
+    }
   });
   await apolloServer.start();
   apolloServer.applyMiddleware({ app, path: '/graphql' });
