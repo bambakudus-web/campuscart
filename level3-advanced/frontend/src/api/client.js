@@ -1,4 +1,7 @@
-const API_BASE = 'http://localhost:5000/api';
+// In production this comes from VITE_API_URL (set in Railway's frontend
+// service variables); locally it falls back to the backend's default port.
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = `${API_ROOT}/api`;
 
 // A small wrapper around fetch that:
 // - prefixes the API base URL
@@ -87,4 +90,4 @@ export const api = {
 };
 
 // Base URL (without /api) for resolving relative image paths returned by the API
-export const ASSET_BASE = 'http://localhost:5000';
+export const ASSET_BASE = API_ROOT;
