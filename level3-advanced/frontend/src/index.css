@@ -431,10 +431,9 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
 .hero-overlay {
   position: absolute;
   inset: 0;
-  /* A lighter, uniform tint keeps the photo itself clearly visible while
-     still giving centered text enough contrast (helped further by the
-     text-shadow on the heading/subtitle below). */
-  background: rgba(20, 40, 28, 0.42);
+  /* Lighter still than before — the photo should read clearly; text
+     contrast now leans more on the text-shadow on the heading/subtitle. */
+  background: rgba(20, 40, 28, 0.22);
 }
 
 .hero-content {
@@ -457,14 +456,14 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
   margin: 0 0 18px;
   line-height: 1.12;
   color: #F5F7F0; /* explicit override — the shared h2 rule elsewhere defaults to a dark color */
-  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 3px 20px rgba(0, 0, 0, 0.5);
 }
 
 .hero-subtitle {
   font-size: 1.3rem;
   color: var(--gold-soft);
   margin: 0 0 30px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65), 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .hero-cta {
@@ -534,27 +533,27 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
 /* ---------- Browse listings ---------- */
 .browse-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
   margin-bottom: 18px;
 }
 
 .browse-header h2 { margin: 0; }
-.browse-header select { max-width: 200px; }
+.browse-header select { max-width: 220px; flex-shrink: 0; }
 
 .browse-controls {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .search-box {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
 }
 
 .search-icon {
@@ -566,16 +565,14 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
 
 .search-box input {
   padding-left: 32px;
-  min-width: 200px;
+  width: 100%;
 }
 
 @media (max-width: 640px) {
   .browse-controls {
-    width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
-  .search-box input { min-width: 0; width: 100%; }
   .browse-header select { max-width: none; }
 }
 

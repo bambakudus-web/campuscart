@@ -86,7 +86,7 @@ export default function ListingDetail() {
 
   return (
     <section className="listing-detail container">
-      <Link to="/" className="back-link">&larr; Back to listings</Link>
+      <Link to="/" state={{ scrollTo: 'listings' }} className="back-link">&larr; Back to listings</Link>
 
       <div className="detail-grid">
         <div className="detail-image-wrap">

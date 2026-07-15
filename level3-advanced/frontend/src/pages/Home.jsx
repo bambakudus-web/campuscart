@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { api } from '../api/client';
 import ListingCard from '../components/ListingCard';
@@ -7,12 +7,23 @@ import HeroCarousel from '../components/HeroCarousel';
 
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
 
   const [listings, setListings] = useState([]);
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // "Start Browsing" / "Browse Electronics" / "Back to listings" links pass
+  // state={{ scrollTo: 'listings' }} so clicking them jumps straight past
+  // the hero to the actual listings, whether that's a fresh page load or
+  // we were already sitting on the home page.
+  useEffect(() => {
+    if (location.state?.scrollTo === 'listings') {
+      document.getElementById('browse-listings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location]);
 
   // Debounce the search box so we're not firing a request on every keystroke
   useEffect(() => {
@@ -53,7 +64,7 @@ export default function Home() {
     <>
       <HeroCarousel />
 
-      <section className="browse-listings container">
+      <section id="browse-listings" className="browse-listings container">
         <div className="browse-header">
           <h2>Browse Listings</h2>
 

@@ -8,7 +8,8 @@ const SLIDES = [
     subtitle: 'Textbooks, electronics, furniture, and more, all within KsTU.',
     image: '/hero/slide-1.jpg',
     ctaLabel: 'Start Browsing',
-    ctaTo: '/'
+    ctaTo: '/',
+    ctaState: { scrollTo: 'listings' }
   },
   {
     title: "Got Textbooks You Don't Need?",
@@ -22,7 +23,8 @@ const SLIDES = [
     subtitle: 'Real-time messaging built right into CampusCart.',
     image: '/hero/slide-3.jpg',
     ctaLabel: 'Browse Electronics',
-    ctaTo: '/?category=electronics'
+    ctaTo: '/?category=electronics',
+    ctaState: { scrollTo: 'listings' }
   }
 ];
 
@@ -68,7 +70,7 @@ export default function HeroCarousel() {
             <div className="hero-content">
               <h2 className="hero-title">{slide.title}</h2>
               <p className="hero-subtitle">{slide.subtitle}</p>
-              <Link to={slide.ctaTo} className="hero-cta">{slide.ctaLabel} →</Link>
+              <Link to={slide.ctaTo} state={slide.ctaState} className="hero-cta">{slide.ctaLabel} →</Link>
             </div>
           </div>
         ))}
