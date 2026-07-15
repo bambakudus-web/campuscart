@@ -539,7 +539,26 @@ button[type="submit"]:hover:not(:disabled) { background: #EDBB1F; }
   margin-bottom: 18px;
 }
 
-.browse-header h2 { margin: 0; }
+.browse-header h2 {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 2rem;
+  position: relative;
+  padding-bottom: 14px;
+}
+
+.browse-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold);
+}
+
 .browse-header select { max-width: 220px; flex-shrink: 0; }
 
 .browse-controls {
