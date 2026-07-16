@@ -20,8 +20,8 @@ router.get('/mine', requireAuth, getMyListings);
 router.get('/:id', getListingById);
 
 // Protected routes — must be logged in
-router.post('/', requireAuth, upload.single('image'), createListing);
-router.put('/:id', requireAuth, upload.single('image'), updateListing);
+router.post('/', requireAuth, upload.array('images', 5), createListing);
+router.put('/:id', requireAuth, upload.array('images', 5), updateListing);
 router.delete('/:id', requireAuth, deleteListing);
 
 module.exports = router;

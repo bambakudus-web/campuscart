@@ -18,6 +18,9 @@ function resolveImageUrl(imageUrl) {
 export default function ListingCard({ listing, showActions = false, onDelete, onMarkSold, onRelist, sellerLabel }) {
   const sellerName = sellerLabel || listing.seller?.name || 'Unknown seller';
   const imageSrc = resolveImageUrl(listing.image_url);
+  const categoryLabel = listing.category === 'other' && listing.custom_category
+    ? listing.custom_category
+    : listing.category;
 
   return (
     <div className="listing-card">
@@ -30,7 +33,7 @@ export default function ListingCard({ listing, showActions = false, onDelete, on
           )}
         </div>
 
-        <span className="tag-category">{listing.category}</span>
+        <span className="tag-category">{categoryLabel}</span>
         <h3 className="listing-title">{listing.title}</h3>
         <p className="listing-desc">{listing.description || 'No description provided'}</p>
         <div className="listing-price">GHS {Number(listing.price).toFixed(2)}</div>

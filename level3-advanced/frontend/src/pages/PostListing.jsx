@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import ImageUploader from '../components/ImageUploader';
 
 export default function PostListing() {
   const navigate = useNavigate();
@@ -9,10 +10,11 @@ export default function PostListing() {
     description: '',
     price: '',
     category: 'books',
+    custom_category: '',
     item_condition: 'used'
   });
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [coverIndex, setCoverIndex] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -21,23 +23,19 @@ export default function PostListing() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleImageChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    // Release the previous preview URL before creating a new one — object
-    // URLs otherwise stay allocated in memory for the lifetime of the page.
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (form.category === 'other' && !form.custom_category.trim()) {
+      setError('Please type a category name.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await api.createListing({ ...form, price: parseFloat(form.price) }, imageFile);
+      await api.createListing({ ...form, price: parseFloat(form.price) }, imageFiles, coverIndex);
       setSuccess('Listing posted successfully!');
       setTimeout(() => navigate('/my-listings'), 900);
     } catch (err) {
@@ -78,6 +76,21 @@ export default function PostListing() {
           </div>
         </div>
 
+        {form.category === 'other' && (
+          <div className="form-row">
+            <label htmlFor="custom_category">Category name</label>
+            <input
+              id="custom_category"
+              name="custom_category"
+              value={form.custom_category}
+              onChange={handleChange}
+              placeholder="e.g. Kitchenware, Sports Gear, Stationery"
+              maxLength={60}
+              required
+            />
+          </div>
+        )}
+
         <div className="form-row">
           <label htmlFor="item_condition">Condition</label>
           <select id="item_condition" name="item_condition" value={form.item_condition} onChange={handleChange}>
@@ -89,11 +102,12 @@ export default function PostListing() {
         </div>
 
         <div className="form-row">
-          <label htmlFor="image">Photo (optional, max 5MB)</label>
-          <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageChange} />
-          {imagePreview && (
-            <img src={imagePreview} alt="Preview" className="image-preview" />
-          )}
+          <label>Photos (optional)</label>
+          <ImageUploader
+            onFilesChange={setImageFiles}
+            onCoverIndexChange={setCoverIndex}
+            max={5}
+          />
         </div>
 
         <button type="submit" disabled={submitting}>{submitting ? 'Posting...' : 'Post Listing'}</button>

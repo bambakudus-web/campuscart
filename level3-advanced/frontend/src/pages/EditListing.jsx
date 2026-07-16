@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, ASSET_BASE } from '../api/client';
+import ImageUploader from '../components/ImageUploader';
 
 function resolveImageUrl(imageUrl) {
   if (!imageUrl) return null;
@@ -12,8 +13,9 @@ export default function EditListing() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(null); // null until loaded
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [coverIndex, setCoverIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -28,9 +30,10 @@ export default function EditListing() {
           description: listing.description || '',
           price: listing.price,
           category: listing.category,
+          custom_category: listing.custom_category || '',
           item_condition: listing.item_condition
         });
-        setImagePreview(resolveImageUrl(listing.image_url));
+        setCurrentImage(resolveImageUrl(listing.image_url));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -40,24 +43,19 @@ export default function EditListing() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleImageChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    // Release the previous blob preview URL if there was one — calling this
-    // on the initial server-provided image URL (not a blob: URL) is a safe
-    // no-op, so this guard doesn't need to distinguish between the two.
-    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (form.category === 'other' && !form.custom_category.trim()) {
+      setError('Please type a category name.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await api.updateListing(id, { ...form, price: parseFloat(form.price) }, imageFile);
+      await api.updateListing(id, { ...form, price: parseFloat(form.price) }, imageFiles, coverIndex);
       setSuccess('Listing updated successfully!');
       setTimeout(() => navigate(`/listings/${id}`), 900);
     } catch (err) {
@@ -102,6 +100,21 @@ export default function EditListing() {
           </div>
         </div>
 
+        {form.category === 'other' && (
+          <div className="form-row">
+            <label htmlFor="custom_category">Category name</label>
+            <input
+              id="custom_category"
+              name="custom_category"
+              value={form.custom_category}
+              onChange={handleChange}
+              placeholder="e.g. Kitchenware, Sports Gear, Stationery"
+              maxLength={60}
+              required
+            />
+          </div>
+        )}
+
         <div className="form-row">
           <label htmlFor="item_condition">Condition</label>
           <select id="item_condition" name="item_condition" value={form.item_condition} onChange={handleChange}>
@@ -113,11 +126,13 @@ export default function EditListing() {
         </div>
 
         <div className="form-row">
-          <label htmlFor="image">Photo (leave blank to keep current photo)</label>
-          <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageChange} />
-          {imagePreview && (
-            <img src={imagePreview} alt="Preview" className="image-preview" />
-          )}
+          <label>Photos</label>
+          <ImageUploader
+            onFilesChange={setImageFiles}
+            onCoverIndexChange={setCoverIndex}
+            max={5}
+            existingPreview={currentImage}
+          />
         </div>
 
         <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</button>

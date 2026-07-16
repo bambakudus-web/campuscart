@@ -34,6 +34,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     loadListing();
@@ -41,6 +42,7 @@ export default function ListingDetail() {
 
   function loadListing() {
     setLoading(true);
+    setActiveImageIndex(0);
     api.getListingById(id)
       .then((res) => setListing(res.data))
       .catch((err) => setError(err.message))
@@ -79,7 +81,18 @@ export default function ListingDetail() {
   if (error) return <p className="empty-state container">{error}</p>;
   if (!listing) return <p className="empty-state container">Listing not found.</p>;
 
-  const imageSrc = resolveImageUrl(listing.image_url);
+  // Older listings created before galleries existed only have a single
+  // image_url and an empty/missing gallery_images array — fall back to
+  // treating that one photo as a one-item gallery so the UI doesn't need
+  // two separate code paths.
+  const gallery = listing.gallery_images && listing.gallery_images.length > 0
+    ? listing.gallery_images
+    : (listing.image_url ? [{ url: listing.image_url }] : []);
+  const activeImage = gallery[activeImageIndex] || gallery[0];
+  const imageSrc = resolveImageUrl(activeImage?.url);
+  const categoryLabel = listing.category === 'other' && listing.custom_category
+    ? listing.custom_category
+    : listing.category;
   // Ownership check: only show edit/delete/sold controls to the listing's
   // own seller. Everyone else sees the Contact Seller option instead.
   const isOwner = user && listing.seller && user.id === listing.seller.id;
@@ -89,16 +102,33 @@ export default function ListingDetail() {
       <Link to="/" state={{ scrollTo: 'listings' }} className="back-link">&larr; Back to listings</Link>
 
       <div className="detail-grid">
-        <div className="detail-image-wrap">
-          {imageSrc ? (
-            <img src={imageSrc} alt={listing.title} className="detail-image" />
-          ) : (
-            <div className="listing-image-placeholder detail-placeholder">No photo yet</div>
+        <div>
+          <div className="detail-image-wrap">
+            {imageSrc ? (
+              <img src={imageSrc} alt={listing.title} className="detail-image" />
+            ) : (
+              <div className="listing-image-placeholder detail-placeholder">No photo yet</div>
+            )}
+          </div>
+
+          {gallery.length > 1 && (
+            <div className="detail-thumbnail-row">
+              {gallery.map((img, index) => (
+                <button
+                  key={img.public_id || img.url || index}
+                  type="button"
+                  className={`detail-thumbnail ${index === activeImageIndex ? 'active' : ''}`}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <img src={resolveImageUrl(img.url)} alt={`${listing.title} photo ${index + 1}`} />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
         <div className="detail-info">
-          <span className="tag-category">{listing.category}</span>
+          <span className="tag-category">{categoryLabel}</span>
           <h2 className="detail-title">{listing.title}</h2>
           <div className="listing-price detail-price">GHS {Number(listing.price).toFixed(2)}</div>
 

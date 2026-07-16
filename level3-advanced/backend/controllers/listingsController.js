@@ -4,6 +4,32 @@ const { cloudinary } = require('../middleware/upload');
 
 const sellerAttributes = ['id', 'name', 'phone', 'email'];
 
+// Turns the raw multer/Cloudinary file list into an ordered array of
+// { url, public_id }, with whichever one the seller picked as the cover
+// moved to index 0. Everything downstream (image_url, image_public_id,
+// gallery_images) is derived from this order.
+function buildGalleryImages(files, coverIndexRaw) {
+  if (!files || files.length === 0) return [];
+
+  const images = files.map((f) => ({ url: f.path, public_id: f.filename }));
+
+  let coverIndex = parseInt(coverIndexRaw, 10);
+  if (Number.isNaN(coverIndex) || coverIndex < 0 || coverIndex >= images.length) {
+    coverIndex = 0;
+  }
+  if (coverIndex === 0) return images;
+
+  const [cover] = images.splice(coverIndex, 1);
+  return [cover, ...images];
+}
+
+// Best-effort delete of every photo in a listing's gallery from Cloudinary.
+function destroyGalleryImages(galleryImages) {
+  (galleryImages || []).forEach((img) => {
+    if (img?.public_id) cloudinary.uploader.destroy(img.public_id).catch(() => {});
+  });
+}
+
 // GET /api/listings — public, supports ?category=, ?status=, and ?search= filters
 exports.getAllListings = async (req, res, next) => {
   try {
@@ -50,18 +76,25 @@ exports.getListingById = async (req, res, next) => {
 // never trusted from the request body, so no one can post as someone else.
 exports.createListing = async (req, res, next) => {
   try {
-    const { title, description, price, category, item_condition } = req.body;
-    const image_url = req.file ? req.file.path : null; // Cloudinary's secure URL
-    const image_public_id = req.file ? req.file.filename : null; // Cloudinary's public_id
+    const { title, description, price, category, item_condition, custom_category, cover_index } = req.body;
+
+    if (category === 'other' && !custom_category?.trim()) {
+      return res.status(400).json({ success: false, message: 'Please type a category name for "Other"' });
+    }
+
+    const files = req.files || [];
+    const galleryImages = buildGalleryImages(files, cover_index);
 
     const listing = await Listing.create({
       title,
       description,
       price,
       category,
+      custom_category: category === 'other' ? custom_category.trim() : null,
       item_condition,
-      image_url,
-      image_public_id,
+      image_url: galleryImages[0]?.url || null,
+      image_public_id: galleryImages[0]?.public_id || null,
+      gallery_images: galleryImages,
       seller_id: req.user.id
     });
 
@@ -98,13 +131,30 @@ exports.updateListing = async (req, res, next) => {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
     });
 
-    if (req.file) {
-      // Remove the old image from Cloudinary so replaced photos don't pile up
-      if (listing.image_public_id) {
-        cloudinary.uploader.destroy(listing.image_public_id).catch(() => {}); // best-effort
+    const effectiveCategory = updates.category !== undefined ? updates.category : listing.category;
+    if (req.body.custom_category !== undefined || updates.category !== undefined) {
+      if (effectiveCategory === 'other') {
+        if (!req.body.custom_category?.trim()) {
+          return res.status(400).json({ success: false, message: 'Please type a category name for "Other"' });
+        }
+        updates.custom_category = req.body.custom_category.trim();
+      } else {
+        updates.custom_category = null;
       }
-      updates.image_url = req.file.path;
-      updates.image_public_id = req.file.filename;
+    }
+
+    // Uploading new photos replaces the whole gallery — there's no partial
+    // add/remove of individual existing photos, to keep the upload widget
+    // simple on the frontend.
+    if (req.files && req.files.length > 0) {
+      destroyGalleryImages(listing.gallery_images); // best-effort cleanup of the old set
+      if (listing.image_public_id && !(listing.gallery_images || []).some((img) => img.public_id === listing.image_public_id)) {
+        cloudinary.uploader.destroy(listing.image_public_id).catch(() => {});
+      }
+      const galleryImages = buildGalleryImages(req.files, req.body.cover_index);
+      updates.gallery_images = galleryImages;
+      updates.image_url = galleryImages[0]?.url || null;
+      updates.image_public_id = galleryImages[0]?.public_id || null;
     }
 
     await listing.update(updates);
@@ -138,8 +188,11 @@ exports.deleteListing = async (req, res, next) => {
 
     await listing.destroy();
 
-    if (listing.image_public_id) {
-      cloudinary.uploader.destroy(listing.image_public_id).catch(() => {}); // best-effort cleanup
+    destroyGalleryImages(listing.gallery_images);
+    // Fallback for listings created before gallery_images existed, where
+    // the cover photo isn't duplicated into the gallery array.
+    if (listing.image_public_id && !(listing.gallery_images || []).some((img) => img.public_id === listing.image_public_id)) {
+      cloudinary.uploader.destroy(listing.image_public_id).catch(() => {});
     }
 
     res.status(200).json({ success: true, message: 'Listing deleted successfully' });

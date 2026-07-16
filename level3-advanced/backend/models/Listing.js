@@ -30,6 +30,23 @@ const Listing = sequelize.define('Listing', {
     allowNull: false,
     defaultValue: 'other'
   },
+  // Free-text label the seller types in when they pick "Other" as the
+  // category — the ENUM above stays fixed so filtering/browsing by the
+  // known categories keeps working, this just holds the display text.
+  custom_category: {
+    type: DataTypes.STRING(60),
+    allowNull: true
+  },
+  // Full ordered list of every uploaded photo: [{ url, public_id }, ...],
+  // up to 5. The cover photo (the one shown on cards/browse) is always
+  // element 0, and is mirrored into image_url/image_public_id below so
+  // every place that already reads those two fields keeps working
+  // unchanged.
+  gallery_images: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
   item_condition: {
     type: DataTypes.ENUM('new', 'like_new', 'used', 'fair'),
     allowNull: false,

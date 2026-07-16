@@ -70,16 +70,22 @@ export const api = {
   getListings: (query = '') => request(`/listings${query}`),
   getListingById: (id) => request(`/listings/${id}`),
   getMyListings: () => request('/listings/mine', { auth: true }),
-  createListing: (payload, imageFile) => {
+  createListing: (payload, imageFiles = [], coverIndex = 0) => {
     const formData = new FormData();
-    Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
-    if (imageFile) formData.append('image', imageFile);
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) formData.append(key, value);
+    });
+    imageFiles.forEach((file) => formData.append('images', file));
+    formData.append('cover_index', coverIndex);
     return requestForm('/listings', { method: 'POST', formData });
   },
-  updateListing: (id, payload, imageFile) => {
+  updateListing: (id, payload, imageFiles = [], coverIndex = 0) => {
     const formData = new FormData();
-    Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
-    if (imageFile) formData.append('image', imageFile);
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) formData.append(key, value);
+    });
+    imageFiles.forEach((file) => formData.append('images', file));
+    if (imageFiles.length > 0) formData.append('cover_index', coverIndex);
     return requestForm(`/listings/${id}`, { method: 'PUT', formData });
   },
   deleteListing: (id) => request(`/listings/${id}`, { method: 'DELETE', auth: true }),
