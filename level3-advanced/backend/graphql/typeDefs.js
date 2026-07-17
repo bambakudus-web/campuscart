@@ -9,15 +9,22 @@ const typeDefs = gql`
     role: String!
   }
 
+  type GalleryImage {
+    url: String!
+    public_id: String
+  }
+
   type Listing {
     id: ID!
     title: String!
     description: String
     price: Float!
     category: String!
+    custom_category: String
     item_condition: String!
     status: String!
     image_url: String
+    gallery_images: [GalleryImage!]
     seller: User!
     createdAt: String
   }
@@ -32,6 +39,7 @@ const typeDefs = gql`
     description: String
     price: Float!
     category: String
+    custom_category: String
     item_condition: String
   }
 
@@ -40,6 +48,7 @@ const typeDefs = gql`
     description: String
     price: Float
     category: String
+    custom_category: String
     item_condition: String
     status: String
   }

@@ -18,6 +18,14 @@ const resolvers = require('./graphql/resolvers');
 const app = express();
 const httpServer = http.createServer(app);
 
+// AUDIT FIX: Railway (and most PaaS hosts) sit behind a reverse proxy.
+// Without this, req.ip always resolves to the proxy's internal IP for
+// every visitor, so express-rate-limit below would bucket ALL users
+// together under one shared limit — a handful of people logging in
+// could lock everyone out at once. Trusting the first proxy hop makes
+// Express read the real client IP from the X-Forwarded-For header instead.
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 5000;
 const CORS_ORIGIN = process.env.FRONTEND_URL || '*';
 
